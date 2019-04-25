@@ -1,11 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.vaadin.addon.audio</groupId>
 	<artifactId>AudioPlayer</artifactId>
 	<packaging>jar</packaging>
-	<version>1.1</version>
+	<version>2.0</version>
 	<name>AudioPlayer Add-on</name>
 
 	<prerequisites>
@@ -16,9 +14,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<vaadin.version>7.7.7</vaadin.version>
-		<vaadin.plugin.version>7.7.7</vaadin.plugin.version>
+		<failOnMissingWebXml>false</failOnMissingWebXml>
 
+		<vaadin.version>13.0.3</vaadin.version>
 		<!-- ZIP Manifest fields -->
 		<Implementation-Version>${project.version}</Implementation-Version>
 		<!-- Must not change this because of the Directory -->
@@ -29,48 +27,91 @@
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
 
-	<!-- <organization> <name>My Name</name> <url>https://github.com/mygithubaccount/AudioPlayer/</url> 
-		</organization> <scm> <url>https://github.com/mygithubaccount/AudioPlayer</url> 
-		<connection>scm:git:git://github.com/mygithubaccount/AudioPlayer.git</connection> 
-		<developerConnection>scm:git:ssh://git@github.com:/mygithubaccount/${componentClassName}.git</developerConnection> 
-		<tag>AudioPlayer add-on for Vaadin</tag> </scm> <issueManagement> <system>GitHub</system> 
-		<url>https://github.com/mygithubaccount/AudioPlayer/issues</url> </issueManagement> -->
-
-	<licenses>
-		<license>
-			<name>Apache 2</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
-
 	<repositories>
+		<!-- Maven central - reduces first-time build time -->
 		<repository>
-			<id>vaadin-addons</id>
+			<id>central</id>
+			<url>https://repo1.maven.org/maven2/</url>
+			<snapshots><enabled>false</enabled></snapshots>
+		</repository>
+
+		<!-- Repository used by many Vaadin add-ons -->
+		<repository>
+			<id>Vaadin Directory</id>
 			<url>http://maven.vaadin.com/vaadin-addons</url>
+		</repository>
+		<!-- Repository needed for prerelease versions of Vaadin -->
+		<repository>
+			<id>vaadin-prereleases</id>
+			<url>https://maven.vaadin.com/vaadin-prereleases</url>
 		</repository>
 	</repositories>
 
+	<pluginRepositories>
+		<!-- Maven central - reduces first-time build time -->
+		<pluginRepository>
+			<id>central</id>
+			<url>https://repo1.maven.org/maven2/</url>
+			<snapshots><enabled>false</enabled></snapshots>
+		</pluginRepository>
+		<!-- Repository needed for prerelease versions of Vaadin -->
+		<pluginRepository>
+			<id>vaadin-prereleases</id>
+			<url>https://maven.vaadin.com/vaadin-prereleases</url>
+			<snapshots><enabled>false</enabled></snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.vaadin</groupId>
+				<artifactId>vaadin-bom</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${vaadin.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
+		<!--<dependency>
+			<groupId>org.vaadin.addon.audio</groupId>
+			<artifactId>AudioPlayer</artifactId>
+			<version>${project.version}</version>
+		</dependency>-->
 		<dependency>
 			<groupId>com.vaadin</groupId>
-			<artifactId>vaadin-server</artifactId>
-			<version>${vaadin.version}</version>
+			<artifactId>vaadin-core</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.vaadin</groupId>
-			<artifactId>vaadin-client</artifactId>
-			<version>${vaadin.version}</version>
-			<scope>provided</scope>
+			<groupId>org.webjars.bowergithub.polymerelements</groupId>
+			<artifactId>paper-slider</artifactId>
+			<version>2.0.9</version>
 		</dependency>
 
-		<!-- This can be replaced with TestNG or some other test framework supported 
-			by the surefire plugin -->
+
+		<!-- Added to provide logging output as Flow uses -->
+		<!-- the unbound SLF4J no-operation (NOP) logger implementation -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+		</dependency>
+
+		<!-- This can be replaced with TestNG or some other test framework supported
+    by the surefire plugin -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.8.1</version>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- For Vorbis encoding support -->
@@ -85,56 +126,8 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<!-- <version>2.12.4</version> -->
-				<configuration>
-					<skipTests>true</skipTests>
-				</configuration>
-			</plugin>
-
-			<!-- vaadin update widgetset -->
-			<plugin>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-maven-plugin</artifactId>
-				<version>7.7.7</version>
-				<configuration>
-					<extraJvmArgs>-Xmx8196M -Xss2048k</extraJvmArgs>
-					<webappDirectory>${basedir}/target/VAADIN/widgetsets</webappDirectory>
-					<hostedWebapp>${basedir}/target/VAADIN/widgetsets</hostedWebapp>
-					<force>false</force>
-					<strict>true</strict>
-					<noServer>true</noServer>
-					<compileReport>true</compileReport>
-					<style>pretty</style>
-					<lifecycleMappingMetadata>
-						<pluginExecutions>
-							<pluginExecution>
-								<pluginExecutionFilter>
-									<goals>
-										<goal>resources</goal>
-										<goal>update-widgetset</goal>
-										<goal>compile</goal>
-									</goals>
-								</pluginExecutionFilter>
-								<action>
-									<ignore />
-								</action>
-							</pluginExecution>
-						</pluginExecutions>
-					</lifecycleMappingMetadata>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.6</version>
+				<version>3.0.2</version>
 				<configuration>
 					<archive>
 						<index>true</index>
@@ -146,8 +139,6 @@
 							<!-- Package format version - do not change -->
 							<Vaadin-Package-Version>1</Vaadin-Package-Version>
 							<Vaadin-License-Title>${Vaadin-License-Title}</Vaadin-License-Title>
-							<Vaadin-Widgetsets>org.vaadin.addon.audio.WidgetSet</Vaadin-Widgetsets>
-							<Implementation-Vendor>Drew Harvey</Implementation-Vendor>
 						</manifestEntries>
 					</archive>
 				</configuration>
@@ -163,6 +154,9 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -199,72 +193,47 @@
 					</execution>
 				</executions>
 			</plugin>
-
-			<!-- Testing -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.19.1</version>
-			</plugin>
 		</plugins>
-
-		<!-- This is needed for the sources required by the client-side compiler 
-			to be included in the produced JARs -->
-		<resources>
-			<resource>
-				<directory>src/main/java</directory>
-				<excludes>
-					<exclude>rebel.xml</exclude>
-				</excludes>
-			</resource>
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
-		</resources>
-
 	</build>
 
 	<profiles>
 		<profile>
-			<!-- Vaadin pre-release repositories -->
-			<id>vaadin-prerelease</id>
+			<!-- Production mode can be activated with either property or profile -->
+			<id>production-mode</id>
 			<activation>
-				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>vaadin.productionMode</name>
+				</property>
 			</activation>
+			<properties>
+				<vaadin.productionMode>true</vaadin.productionMode>
+			</properties>
 
-			<repositories>
-				<repository>
-					<id>vaadin-prereleases</id>
-					<url>http://maven.vaadin.com/vaadin-prereleases</url>
-				</repository>
-				<repository>
-					<id>vaadin-snapshots</id>
-					<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-					<releases>
-						<enabled>false</enabled>
-					</releases>
-					<snapshots>
-						<enabled>true</enabled>
-					</snapshots>
-				</repository>
-			</repositories>
-			<pluginRepositories>
-				<pluginRepository>
-					<id>vaadin-prereleases</id>
-					<url>http://maven.vaadin.com/vaadin-prereleases</url>
-				</pluginRepository>
-				<pluginRepository>
-					<id>vaadin-snapshots</id>
-					<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-					<releases>
-						<enabled>false</enabled>
-					</releases>
-					<snapshots>
-						<enabled>true</enabled>
-					</snapshots>
-				</pluginRepository>
-			</pluginRepositories>
+			<dependencies>
+				<dependency>
+					<groupId>com.vaadin</groupId>
+					<artifactId>flow-server-production-mode</artifactId>
+				</dependency>
+			</dependencies>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.vaadin</groupId>
+						<artifactId>vaadin-maven-plugin</artifactId>
+						<version>${vaadin.version}</version>
+						<executions>
+							<execution>
+								<goals>
+									<goal>copy-production-files</goal>
+									<goal>package-for-production</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
-
 </project>
+

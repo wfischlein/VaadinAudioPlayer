@@ -1,0 +1,40 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/vaadin-button/src/vaadin-button.html">
+<link rel="import" href="bower_components/vaadin-ordered-layout/src/vaadin-horizontal-layout.html">
+<link rel="import" href="styles/shared-styles.html">
+
+<dom-module id="player-controls">
+    <template>
+<style include="shared-styles">
+            :host {
+                display: block;
+            }
+        </style>
+<vaadin-horizontal-layout theme="spacing margin" style="width: 100%; height: 100%;">
+ <vaadin-button theme="primary" id="playButton">
+   Play 
+ </vaadin-button>
+ <vaadin-button theme="primary" id="pauseButton">
+   Pause 
+ </vaadin-button>
+ <vaadin-button theme="primary" id="stopButton">
+   Stop 
+ </vaadin-button>
+</vaadin-horizontal-layout>
+</template>
+
+    <script>
+        class PlayerControls extends Polymer.Element {
+            static get is() {
+                return 'player-controls';
+            }
+
+            static get properties() {
+                return {
+                    // Declare your properties here.
+                };
+            }
+        }
+        customElements.define(PlayerControls.is, PlayerControls);
+    </script>
+</dom-module>

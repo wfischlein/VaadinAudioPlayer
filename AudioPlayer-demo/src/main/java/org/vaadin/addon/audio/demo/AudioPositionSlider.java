@@ -1,5 +1,5 @@
 package org.vaadin.addon.audio.demo;
-
+/*
 import com.vaadin.ui.Slider;
 
 /**
@@ -10,7 +10,7 @@ import com.vaadin.ui.Slider;
  * also needs to allow for users to move and set the position.
  *
  */
-public class AudioPositionSlider extends Slider {
+/*public class AudioPositionSlider extends Slider {
 	
 	public AudioPositionSlider(String name) {
 		super(name);
@@ -22,3 +22,4 @@ public class AudioPositionSlider extends Slider {
 	}
 	
 }
+*/

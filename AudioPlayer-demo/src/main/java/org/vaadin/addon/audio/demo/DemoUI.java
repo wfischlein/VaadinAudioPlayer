@@ -1,5 +1,5 @@
 package org.vaadin.addon.audio.demo;
-
+/*
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -607,7 +607,7 @@ public class DemoUI extends UI {
 	 * @param dir		directory in which the file exists
 	 * @return ByteBuffer containing byte[] of PCM data
 	 */
-	private static ByteBuffer decodeToPcm(String fname, String dir) {
+	/*private static ByteBuffer decodeToPcm(String fname, String dir) {
 		// TODO: add other supported encodings for decoding to PCM
 		ByteBuffer buffer = null;
 		try {
@@ -681,3 +681,4 @@ public class DemoUI extends UI {
 		return fnames;
 	}
 }
+*/

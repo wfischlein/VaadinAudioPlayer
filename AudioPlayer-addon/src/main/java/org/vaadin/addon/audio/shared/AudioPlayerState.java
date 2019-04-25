@@ -1,5 +1,5 @@
 package org.vaadin.addon.audio.shared;
-
+/*
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,11 +13,12 @@ public class AudioPlayerState extends AbstractComponentState {
 	public int chunkTimeMillis;
 
 	public int numChunksPreload;
-	
+
 	public int duration;
-	
+
 	public int reportPositionRepeatTime = 500;
-	
+
 	public final List<SharedEffect> effects = new ArrayList<SharedEffect>();
-	
+
 }
+*/

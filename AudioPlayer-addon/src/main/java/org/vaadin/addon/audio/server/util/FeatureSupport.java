@@ -1,7 +1,8 @@
 package org.vaadin.addon.audio.server.util;
 
-import com.vaadin.server.Page;
-import com.vaadin.server.WebBrowser;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.page.Page;
+import com.vaadin.flow.server.WebBrowser;
 
 public class FeatureSupport {
 	
@@ -62,7 +63,7 @@ public class FeatureSupport {
 	
 	private static WebBrowser getBrowser() {
 		if (browser == null) {
-			browser = Page.getCurrent().getWebBrowser();
+			browser = UI.getCurrent().getSession().getBrowser();
 		}
 		return browser;
 	}

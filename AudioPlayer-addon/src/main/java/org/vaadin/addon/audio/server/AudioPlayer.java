@@ -20,8 +20,6 @@ import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
 import com.vaadin.flow.templatemodel.TemplateModel;
 
 // This is the server-side UI component that provides public API for AudioPlayer
-// pako_inflate.min.js is used for compression
-// jungle.js is to supply audio node that can pitch shift
 @SuppressWarnings("serial")
 @Tag("audio-player")
 @HtmlImport("audio-player.html")

@@ -1,6 +1,5 @@
-<link rel="import" href="../bower_components/polymer/polymer-element.html">
-
-<link rel="import" href="../styles/shared-styles.html">
+<link rel="import" href="bower_components/polymer/polymer-element.html">
+<link rel="import" href="styles/shared-styles.html">
 
 <dom-module id="audio-player">
     <template>
@@ -11,25 +10,15 @@
     </template>
 
     <script>
-        class AudioPlayerElement extends Polymer.Element {
+        class AudioPlayer extends Polymer.Element {
 
-            constructor() {
-                super();
+            static get is() {
+                return 'audio-player';
             }
 
             static get properties() {
                 return {};
             }
-
-
-// TODO: not needed for Flow, remove when migrating
-            setServer($server) {
-                console.warn('NAP element setServer', $server);
-                this.$server = $server;
-
-                $server.onStateChange = function () {
-                    console.warn('NAP connector on state change', this.getState());
-                };
 
 // /**
 //  * Send data from server to client. In other words, the server will
@@ -48,14 +37,6 @@
 //
 // void skipPosition(int delta_millis);
 
-                $server.startPlayback = this.startPlayback.bind(this);
-
-                $server.pausePlayback = this.pausePlayback.bind(this);
-
-                $server.resumePlayback = this.resumePlayback.bind(this);
-
-                $server.stopPlayback = this.stopPlayback.bind(this);
-
 // void setPlaybackSpeed(double speed_multiplier);
 //
 // void setVolume(double volume);
@@ -65,7 +46,6 @@
 // void setBalance(double balance);
 //
 // void updateEffects(List<SharedEffect> effects);
-            }
 
             startPlayback() {
                 console.warn('NAP element startPlayback');
@@ -88,7 +68,7 @@
             }
 
         }
-        customElements.define('audio-player', AudioPlayerElement);
+        customElements.define(AudioPlayer.is, AudioPlayer);
     </script>
 </dom-module>
 

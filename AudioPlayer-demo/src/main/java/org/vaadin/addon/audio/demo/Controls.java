@@ -29,6 +29,7 @@ public class Controls extends PolymerTemplate<Controls.PlayerControlsModel> {
      */
     public Controls(AudioPlayer player, String streamName) {
         this.player = player;
+        getElement().appendChild(player.getElement());
 
         playButton.addClickListener(e -> {
             if (player.isStopped()) {

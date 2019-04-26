@@ -23,7 +23,7 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 @SuppressWarnings("serial")
 @Tag("audio-player")
 @HtmlImport("audio-player.html")
-public class AudioPlayer extends Component {
+public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     private Stream stream = null;
     private PlaybackState playbackState = PlaybackState.STOPPED;

@@ -6,16 +6,16 @@ import org.vaadin.addon.audio.shared.SharedEffect;
 
 public abstract class Effect {
 
-	private UUID id;
-	
-	public Effect() {
-		id = UUID.randomUUID();
-	}
-	
-	public String getID() {
-		return id.toString();
-	}
-	
-	public abstract SharedEffect getSharedEffectObject();
-	
+    private UUID id;
+
+    public Effect() {
+        id = UUID.randomUUID();
+    }
+
+    public String getID() {
+        return id.toString();
+    }
+
+    public abstract SharedEffect getSharedEffectObject();
+
 }

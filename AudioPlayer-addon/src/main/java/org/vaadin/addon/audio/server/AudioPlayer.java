@@ -3,7 +3,9 @@ package org.vaadin.addon.audio.server;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.vaadin.flow.component.Component;
+import elemental.json.Json;
+import elemental.json.JsonArray;
+import elemental.json.JsonObject;
 import org.vaadin.addon.audio.server.state.PlaybackState;
 import org.vaadin.addon.audio.server.state.StateChangeCallback;
 import org.vaadin.addon.audio.server.state.VolumeChangeCallback;
@@ -36,7 +38,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     private List<VolumeChangeCallback> volumeCallbacks = new ArrayList<>();
 
     // AudioPlayerState:
-    public final List<ChunkDescriptor> chunks = new ArrayList<ChunkDescriptor>();
+    // public final List<ChunkDescriptor> chunks = new ArrayList<ChunkDescriptor>();
 
     public int chunkTimeMillis;
 
@@ -72,10 +74,10 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     private void setupAudioPlayer(Stream stream) {
-        UI.getCurrent().getPage().executeJavaScript("console.warn('setup AudioPlayer 111');");
-
         // Register stream, set up chunk table in state
         setStream(stream);
+
+        getElement().setProperty("reportPositionRepeatTime", reportPositionRepeatTime);
     }
 
     @ClientCallable
@@ -85,22 +87,17 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         final UI ui = UI.getCurrent();
         final AudioPlayer player = AudioPlayer.this;
 
-        Stream.Callback onComplete = new Stream.Callback() {
-            @Override
-            public void onComplete(String encodedData) {
-                ui.access(() -> {
-                    getElement().callFunction("sendData", chunkID, stream.isCompressionEnabled(), encodedData);
-                    Log.message(AudioPlayer.this, "sent chunk " + chunkID);
-                });
-            }
-        };
+        Stream.Callback onComplete = encodedData -> ui.access(() -> {
+            getElement().callFunction("sendData", chunkID, stream.isCompressionEnabled(), encodedData);
+            Log.message(AudioPlayer.this, "sent chunk " + chunkID);
+        });
 
         stream.getChunkData(stream.getChunkById(chunkID), onComplete);
     }
 
     @ClientCallable
     public void reportPlaybackPosition(int position_millis) {
-        // Log.message(AudioPlayer.this,"received position report: " + position_millis);
+        Log.message(AudioPlayer.this,"received position report: " + position_millis);
         if (position_millis != currentPosition) {
             currentPosition = position_millis;
             for (StateChangeCallback cb : stateCallbacks) {
@@ -160,13 +157,31 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     public Stream setStream(Stream stream) {
-        if (this.stream != null) {
-            chunks.clear();
-        }
+        // if (this.stream != null) {
+        //     chunks.clear();
+        // }
         this.stream = stream;
-        chunks.addAll(stream.getChunks());
+        // TODO: prettify this verbose JSON serialization
+        JsonArray chunksJson = Json.createArray();
+        List<ChunkDescriptor> chunks = stream.getChunks();
+        for (int i = 0; i < chunks.size(); i++) {
+            ChunkDescriptor chunk = chunks.get(i);
+            JsonObject chunkDescriptor = Json.createObject();
+            chunkDescriptor.put("id", chunk.getId());
+            chunkDescriptor.put("startTimeOffset", chunk.getStartTimeOffset());
+            chunkDescriptor.put("endTimeOffset", chunk.getEndTimeOffset());
+            chunkDescriptor.put("leadInDuration", chunk.getLeadInDuration());
+            chunkDescriptor.put("leadOutDuration", chunk.getLeadOutDuration());
+            chunkDescriptor.put("overlapTime", chunk.getOverlapTime());
+            chunkDescriptor.put("startSampleOffset", chunk.getStartSampleOffset());
+            chunkDescriptor.put("endSampleOffset", chunk.getEndSampleOffset());
+            chunksJson.set(i, chunkDescriptor);
+        }
+        getElement().setPropertyJson("chunks", chunksJson);
         duration = stream.getDuration();
+        getElement().setProperty("duration", duration);
         chunkTimeMillis = stream.getChunkLength();
+        getElement().setProperty("chunkTimeMillis", chunkTimeMillis);
         return stream;
     }
 
@@ -189,8 +204,13 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     public void setPosition(int millis) {
+        if (millis == currentPosition) {
+            // Avoid setting the same position again loopback
+            return;
+        }
+
         currentPosition = millis;
-        // getClientRPC().setPlaybackPosition(millis);
+        getElement().callFunction("setPlaybackPosition", millis);
         Log.message(AudioPlayer.this, "set playback position: " + millis);
     }
 
@@ -266,14 +286,13 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
      *            volume level
      */
     public void setVolume(double volume) {
-        // getClientRPC().setVolume(volume);
+        getElement().callFunction("setVolume", volume);
         Log.message(AudioPlayer.this, "setting volume to " + volume);
     }
 
     public void setVolumeOnChannel(double volume, int channel) {
-        // getClientRPC().setVolumeOnChannel(volume, channel);
+        getElement().callFunction("setVolumeOnChannel", volume, channel);
         Log.message(AudioPlayer.this, "setting volume to " + volume + " on channel " + channel);
-
     }
 
     public double getVolume() {
@@ -299,7 +318,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
      *            speed ratio
      */
     public void setPlaybackSpeed(double playbackSpeed) {
-        // getClientRPC().setPlaybackSpeed(playbackSpeed);
+        getElement().callFunction("setPlaybackSpeed", playbackSpeed);
         Log.message(AudioPlayer.this, "setting playback speed to " + playbackSpeed);
     }
 
@@ -312,7 +331,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
      * @param balance
      */
     public void setBalance(double balance) {
-        // getClientRPC().setBalance(balance);
+        getElement().callFunction("setBalance", balance);
     }
 
     /**

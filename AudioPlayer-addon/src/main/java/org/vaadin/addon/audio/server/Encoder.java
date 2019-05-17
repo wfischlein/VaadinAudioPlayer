@@ -11,43 +11,46 @@ import org.vaadin.addon.audio.shared.PCMFormat;
  */
 public abstract class Encoder {
 
-	private ByteBuffer inputBuffer;
-	private PCMFormat inputFormat;
-	
-	public Encoder() {
-		// ?
-	}
+    private ByteBuffer inputBuffer;
+    private PCMFormat inputFormat;
 
-	protected void setInput(ByteBuffer pcmBytes, PCMFormat inputFormat) {
-		this.inputBuffer = pcmBytes;
-		this.inputFormat = inputFormat;
-	}
-	
-	/**
-	 * Get access to the raw input data buffer
-	 * 
-	 * @return a ByteBuffer reference
-	 */
-	protected ByteBuffer getInputBuffer() {
-		return inputBuffer;
-	}
-	
-	/**
-	 * Get access to the input format descriptor
-	 * 
-	 * @return a PCMFormat reference
-	 */
-	protected PCMFormat getInputFormat() {
-		return inputFormat;
-	}
-	
-	/**
-	 * Encode a number of bytes from the input buffer. Return a byte array.
-	 * 
-	 * @param from_offset sample offset to encode from
-	 * @param length number of samples to encode
-	 * @param callback function to call when encoding is complete 
-	 */
-	public abstract byte[] encode(int from_offset, int length);
-	
+    public Encoder() {
+        // ?
+    }
+
+    protected void setInput(ByteBuffer pcmBytes, PCMFormat inputFormat) {
+        this.inputBuffer = pcmBytes;
+        this.inputFormat = inputFormat;
+    }
+
+    /**
+     * Get access to the raw input data buffer
+     * 
+     * @return a ByteBuffer reference
+     */
+    protected ByteBuffer getInputBuffer() {
+        return inputBuffer;
+    }
+
+    /**
+     * Get access to the input format descriptor
+     * 
+     * @return a PCMFormat reference
+     */
+    protected PCMFormat getInputFormat() {
+        return inputFormat;
+    }
+
+    /**
+     * Encode a number of bytes from the input buffer. Return a byte array.
+     * 
+     * @param from_offset
+     *            sample offset to encode from
+     * @param length
+     *            number of samples to encode
+     * @param callback
+     *            function to call when encoding is complete
+     */
+    public abstract byte[] encode(int from_offset, int length);
+
 }

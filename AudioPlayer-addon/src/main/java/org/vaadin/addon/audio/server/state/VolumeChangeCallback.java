@@ -1,7 +1,5 @@
 package org.vaadin.addon.audio.server.state;
 
-import java.util.HashMap;
-
 // TODO: this is way too general and should be refactored
 
 /**

@@ -9,7 +9,7 @@ public class StringFormatter {
 
     /**
      * Converts milliseconds into a String object showing the number of
-     * hours, minutes, and seconds.  Hours will only show if there is at
+     * hours, minutes, and seconds. Hours will only show if there is at
      * least 1 hour.
      *
      * @return String HH:MM:SS (ex: 01:23:20)

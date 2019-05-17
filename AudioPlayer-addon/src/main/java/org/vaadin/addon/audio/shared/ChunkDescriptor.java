@@ -5,89 +5,89 @@ import java.io.Serializable;
 @SuppressWarnings("serial")
 public class ChunkDescriptor implements Serializable {
 
-	// Common chunk ID
-	private int id;
+    // Common chunk ID
+    private int id;
 
-	// General info
-	private int startTimeOffset;
-	private int endTimeOffset;
-	private int leadInDuration;
-	private int leadOutDuration;
-	private int overlapTime;
+    // General info
+    private int startTimeOffset;
+    private int endTimeOffset;
+    private int leadInDuration;
+    private int leadOutDuration;
+    private int overlapTime;
 
-	// PCM source stream data offsets
-	private int startSampleOffset;
-	private int endSampleOffset;
+    // PCM source stream data offsets
+    private int startSampleOffset;
+    private int endSampleOffset;
 
-	public void setId(int id) {
-		this.id = id;
-	}
+    public void setId(int id) {
+        this.id = id;
+    }
 
-	public void setStartTimeOffset(int startTimeOffset) {
-		this.startTimeOffset = startTimeOffset;
-	}
+    public void setStartTimeOffset(int startTimeOffset) {
+        this.startTimeOffset = startTimeOffset;
+    }
 
-	public void setEndTimeOffset(int endTimeOffset) {
-		this.endTimeOffset = endTimeOffset;
-	}
+    public void setEndTimeOffset(int endTimeOffset) {
+        this.endTimeOffset = endTimeOffset;
+    }
 
-	public void setLeadInDuration(int leadInDuration) {
-		this.leadInDuration = leadInDuration;
-	}
+    public void setLeadInDuration(int leadInDuration) {
+        this.leadInDuration = leadInDuration;
+    }
 
-	public void setLeadOutDuration(int leadOutDuration) {
-		this.leadOutDuration = leadOutDuration;
-	}
-	
-	public void setOverlapTime(int overlapTime) {
-		this.overlapTime = overlapTime;
-	}
-	
-	public int getOverlapTime() {
-		return overlapTime;
-	}
+    public void setLeadOutDuration(int leadOutDuration) {
+        this.leadOutDuration = leadOutDuration;
+    }
 
-	public void setStartSampleOffset(int startSampleOffset) {
-		this.startSampleOffset = startSampleOffset;
-	}
+    public void setOverlapTime(int overlapTime) {
+        this.overlapTime = overlapTime;
+    }
 
-	public void setEndSampleOffset(int endSampleOffset) {
-		this.endSampleOffset = endSampleOffset;
-	}
+    public int getOverlapTime() {
+        return overlapTime;
+    }
 
-	public int getId() {
-		return id;
-	}
+    public void setStartSampleOffset(int startSampleOffset) {
+        this.startSampleOffset = startSampleOffset;
+    }
 
-	public int getStartTimeOffset() {
-		return startTimeOffset;
-	}
+    public void setEndSampleOffset(int endSampleOffset) {
+        this.endSampleOffset = endSampleOffset;
+    }
 
-	public int getEndTimeOffset() {
-		return endTimeOffset;
-	}
+    public int getId() {
+        return id;
+    }
 
-	public int getLeadInDuration() {
-		return leadInDuration;
-	}
+    public int getStartTimeOffset() {
+        return startTimeOffset;
+    }
 
-	public int getLeadOutDuration() {
-		return leadOutDuration;
-	}
+    public int getEndTimeOffset() {
+        return endTimeOffset;
+    }
 
-	public int getStartSampleOffset() {
-		return startSampleOffset;
-	}
+    public int getLeadInDuration() {
+        return leadInDuration;
+    }
 
-	public int getEndSampleOffset() {
-		return endSampleOffset;
-	}
+    public int getLeadOutDuration() {
+        return leadOutDuration;
+    }
 
-	@Override
-	public String toString() {
-		return "[Descriptor for chunk " + id + " time: " + startTimeOffset + "(-" + leadInDuration + ") - "
-				+ endTimeOffset + "(+" + leadOutDuration + ")" + " samples: " + startSampleOffset + "-"
-				+ endSampleOffset + ", size: " + (endSampleOffset - startSampleOffset) + " samples ]";
-	}
+    public int getStartSampleOffset() {
+        return startSampleOffset;
+    }
+
+    public int getEndSampleOffset() {
+        return endSampleOffset;
+    }
+
+    @Override
+    public String toString() {
+        return "[Descriptor for chunk " + id + " time: " + startTimeOffset + "(-" + leadInDuration + ") - "
+                + endTimeOffset + "(+" + leadOutDuration + ")" + " samples: " + startSampleOffset + "-"
+                + endSampleOffset + ", size: " + (endSampleOffset - startSampleOffset) + " samples ]";
+    }
 
 }

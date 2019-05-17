@@ -6,7 +6,5 @@ package org.vaadin.addon.audio.server.state;
  * States that the AudioPlayer can be in.
  */
 public enum PlaybackState {
-    PLAYING,
-    PAUSED,
-    STOPPED
+    PLAYING, PAUSED, STOPPED
 }

@@ -6,9 +6,5 @@ package org.vaadin.addon.audio.server.state;
  * States of a Stream.
  */
 public enum StreamState {
-    IDLE,
-    READING,
-    ENCODING,
-    COMPRESSING,
-    SERIALIZING
+    IDLE, READING, ENCODING, COMPRESSING, SERIALIZING
 }

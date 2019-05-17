@@ -82,9 +82,9 @@
 
             /**
              * @param {number?} timeOffset
-             * @param {boolean} useCrossFade
+             * @param {boolean} isChunkTransition
              */
-            play(timeOffset, useCrossFade = true) {
+            play(timeOffset, isChunkTransition = false) {
                 if (timeOffset === undefined) {
                     if (this._playerManager.currentPlayer.isScheduled) {
                         // Do nothing, the playback is going
@@ -99,33 +99,30 @@
                 }
 
                 if (timeOffset < 0 || this._position + timeOffset >= this.duration) {
+                    // Start offset is outside the range
                     return;
                 }
 
-                if (this._chunkStartTime === undefined) {
-                    this._chunkStartTime = 1000 * this._context.currentTime
-                        + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS;
-                } else {
+                if (isChunkTransition && this._chunkStartTime !== undefined) {
+                    // Chunk transition, start playback precisely when
+                    // the current chunk’s playback ends
                     this._chunkStartTime +=
                         ((this._prevChunkDuration - this._chunkPosition) + timeOffset)
                         / this._playbackSpeed;
+                } else {
+                    // Not a transition, start playback right about now
+                    this._chunkStartTime = 1000 * this._context.currentTime
+                        + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS;
                 }
 
                 this._chunkPosition = timeOffset;
 
-
-                // TODO: Add crossfade
-                // if (useCrossFade) {
-                //
-                // } else {
-                //
-                // }
-
                 this._setPersistingPlayerOptions(this._playerManager.currentPlayer);
-                this._playerManager.currentPlayer.play(timeOffset, this._chunkStartTime / 1000);
 
-                const chunkStopTime = this._chunkStartTime +
-                    (this._currentChunkDuration - timeOffset) / this._playbackSpeed;
+                // Make sure to stop the previous player’s playback
+                this._playerManager.prevPlayer.stop(this._chunkStartTime / 1000);
+
+                this._playerManager.currentPlayer.play(timeOffset, this._chunkStartTime / 1000);
 
                 this._startNextChunkScheduling();
 
@@ -193,7 +190,7 @@
                 const request = this._stream.requestChunkByTimestamp(timestamp)
                     .then(
                         /**
-                         * @param {VaadinAudioPlayer.ClientStreamBuffer}
+                         * @param {VaadinAudioPlayer.ClientStreamBuffer} buffer
                          */
                         buffer => {
                             const player = this._playerManager.nextPlayer;
@@ -301,8 +298,7 @@
             }
 
             _playNextChunk() {
-                const nextChunkOffset = this._position + this._currentChunkPosition;
-                // console.warn("sequencing at", nextChunkOffset, this.duration);
+                const nextChunkOffset = this._position + this._currentChunkDuration;
                 if (nextChunkOffset >= this.duration) {
                     // console.warn("to stop");
                     this.stop();
@@ -333,12 +329,7 @@
              * @param {number} millis
              */
             set position(millis) {
-                const isPlaying = this._playerManager.currentPlayer.isPlaying;
-                if (isPlaying) {
-                    this._playerManager.currentPlayer.stop();
-                }
-
-                this._chunkStartTime = undefined;
+                const isPlaying = this._chunkStartTime !== undefined;
 
                 const offset = millis % this._timePerChunk;
                 const newPosition = millis - offset;
@@ -401,7 +392,7 @@
                     throw new Error('playback speed must be greater than 0');
                 }
 
-                const isPlaying = this._playerManager.currentPlayer.isPlaying;
+                const isPlaying = this._chunkStartTime !== undefined;
                 const when = this._context.currentTime
                     + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS / 1000;
                 // calculate the position in the chunk based on elapsed time and current playback speed

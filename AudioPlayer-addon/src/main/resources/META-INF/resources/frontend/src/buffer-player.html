@@ -20,7 +20,6 @@
                 this._context = context;
                 this._startTime = undefined;
                 this._destination = undefined;
-
                 this._resetSourceNode();
             }
 
@@ -42,8 +41,8 @@
                 if (this.isScheduled) {
                     this.stop(when);
                 }
-                this._startTime = offsetMillis / 1000;
-                this._sourceNode.start(when, this._startTime);
+                this._startTime = when;
+                this._sourceNode.start(when, offsetMillis / 1000);
             }
 
             stop(
@@ -77,8 +76,10 @@
              * @param {AudioBuffer} buffer
              */
             set buffer(buffer) {
-                this._resetSourceNode(true);
-                this._sourceNode.buffer = buffer;
+                if (this._sourceNode.buffer !== buffer) {
+                    this._resetSourceNode(true);
+                    this._sourceNode.buffer = buffer;
+                }
             }
 
             /**
@@ -108,8 +109,12 @@
                 this._startTime = undefined;
                 this._sourceNode = this._context.createBufferSource();
                 this._sourceNode.playbackRate.value = playbackRate;
-                this._sourceNode.onended = () => {
-                    this._resetSourceNode();
+                this._sourceNode.onended = event => {
+                    // If the current source node has ended playback,
+                    // reset it to prepare for starting playback again
+                    if (this._sourceNode === event.target) {
+                        this._resetSourceNode();
+                    }
                 };
                 if (buffer && !discardBuffer) {
                     this._sourceNode.buffer = buffer;

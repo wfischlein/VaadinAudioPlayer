@@ -36,34 +36,11 @@
             }
 
             /**
-             * @param {VaadinAudioPlayer.BufferPlayer} player
-             */
-            set currentPlayer(player) {
-                if (this._destination) {
-                    player.disconnect();
-                    player.connect(this._destination);
-                }
-                this._players[this._currentPlayerId] = player;
-            }
-
-            /**
              * @returns {VaadinAudioPlayer.BufferPlayer}
              */
             get nextPlayer() {
                 const i = (this._currentPlayerId + 1) % this._players.length;
                 return this._players[i];
-            }
-
-            /**
-             * @param {VaadinAudioPlayer.BufferPlayer} player
-             */
-            set nextPlayer(player) {
-                if (this._destination) {
-                    player.disconnect();
-                    player.connect(this._destination);
-                }
-                const i = (this._currentPlayerId + 1) % this._players.length;
-                this._players[i] = player;
             }
 
             /**

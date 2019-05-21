@@ -333,13 +333,14 @@
 
                 const offset = millis % this._timePerChunk;
                 const newPosition = millis - offset;
-                this._chunkPosition = offset;
                 if (newPosition === this._position) {
                     if (isPlaying) {
                         this.play(offset, false);
                     }
                 } else {
+                    this.pause();
                     this._position = newPosition;
+                    this._chunkPosition = offset;
                     this._fetchChunksForNextPlayer(this._position + this._chunkOverlapTime)
                         .then(
                             /**

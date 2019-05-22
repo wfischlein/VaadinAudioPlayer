@@ -78,7 +78,9 @@
             set buffer(buffer) {
                 if (this._sourceNode.buffer !== buffer) {
                     this._resetSourceNode(true);
-                    this._sourceNode.buffer = buffer;
+                    if (buffer !== null) {
+                        this._sourceNode.buffer = buffer;
+                    }
                 }
             }
 

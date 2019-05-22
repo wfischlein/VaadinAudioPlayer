@@ -63,6 +63,8 @@
 
                 this._chunkStartTime = undefined;
 
+                this._tryResume = undefined;
+
                 // request first audio chunk
                 this._initFirstAudioChunk();
             }
@@ -78,6 +80,11 @@
              */
             disconnect() {
                 this._pitchShiftNode.disconnect();
+            }
+
+            _getScheduleTime() {
+                return 1000 * this._context.currentTime
+                        + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS;
             }
 
             /**
@@ -111,19 +118,62 @@
                         / this._playbackSpeed;
                 } else {
                     // Not a transition, start playback right about now
-                    this._chunkStartTime = 1000 * this._context.currentTime
-                        + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS;
+                    this._chunkStartTime = this._getScheduleTime();
                 }
-
-                this._chunkPosition = timeOffset;
-
-                this._setPersistingPlayerOptions(this._playerManager.currentPlayer);
 
                 // Make sure to stop the previous player’s playback
                 this._playerManager.prevPlayer.stop(this._chunkStartTime / 1000);
 
-                this._playerManager.currentPlayer.play(timeOffset, this._chunkStartTime / 1000);
+                if (!this._playerManager.currentPlayer.buffer) {
+                    // Current chunk is not ready, pause and resume later
+                    const scheduleTime = this._chunkStartTime;
+                    this.pause();
+                    this._chunkPosition = timeOffset;
+                    this._resumeWhenNextChunkReadyFrom(timeOffset);
+                } else {
+                    this._chunkPosition = timeOffset;
+                    this.resume();
+                }
 
+            }
+
+            /**
+             * @param {number} timeOffset
+             * @param {boolean?} moveToNextPlayer
+             * @private
+             */
+            _resumeWhenNextChunkReadyFrom(timeOffset, moveToNextPlayer = false) {
+                this._tryResume = () => {
+                    if (this._chunkStartTime === undefined) {
+                        if (moveToNextPlayer) {
+                            this._playerManager.moveToNextPlayer();
+                        }
+                        this.resume();
+                    }
+                    this._tryResume = undefined;
+                };
+            }
+
+            pause() {
+                const scheduleTime = this._getScheduleTime();
+                if (this._chunkStartTime !== undefined) {
+                    const elapsedTime = scheduleTime - this._chunkStartTime;
+                    this._chunkPosition += elapsedTime * this._playbackSpeed;
+                    this._chunkStartTime = undefined;
+                }
+                this._playerManager.prevPlayer.stop(scheduleTime / 1000);
+                this._playerManager.currentPlayer.stop(scheduleTime / 1000);
+                this._stopNextChunkScheduling();
+                this._chunkStartTime = undefined;
+                this._tryResume = undefined;
+            }
+
+            resume() {
+                this._setPersistingPlayerOptions(this._playerManager.currentPlayer);
+                if (this._chunkStartTime === undefined) {
+                    this._chunkStartTime = this._getScheduleTime();
+                }
+                this._playerManager.currentPlayer.play(this._chunkPosition, this._chunkStartTime / 1000);
                 this._startNextChunkScheduling();
 
                 const nextChunkTime = Math.min(
@@ -135,33 +185,14 @@
                 }
             }
 
-            pause() {
-                if (this._chunkStartTime !== undefined) {
-                    const elapsedTime = 1000 * this._context.currentTime
-                        + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS
-                        - this._chunkStartTime;
-                    this._chunkPosition += elapsedTime * this._playbackSpeed;
-                    this._chunkStartTime = undefined;
-                }
-                this._playerManager.currentPlayer.stop();
-                this._stopNextChunkScheduling();
-                this._chunkStartTime = undefined;
-            }
-
-            resume() {
-                this._setPersistingPlayerOptions(this._playerManager.currentPlayer);
-                this._chunkStartTime = 1000 * this._context.currentTime
-                    + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS;
-                this._playerManager.currentPlayer.play(this._chunkPosition, this._chunkStartTime / 1000);
-                this._startNextChunkScheduling();
-            }
-
             stop() {
+                this._playerManager.prevPlayer.stop();
                 this._playerManager.currentPlayer.stop();
                 this._stopNextChunkScheduling();
                 this._position = 0;
                 this._chunkPosition = 0;
                 this._chunkStartTime = undefined;
+                this._tryResume = undefined;
                 if (this.onStop) {
                     this.onStop();
                 }
@@ -169,17 +200,18 @@
             }
 
             _initFirstAudioChunk() {
+                this._playerManager.moveToPrevPlayer();
                 this._fetchChunksForNextPlayer(0)
                     .then(
                         /**
                          * @param {VaadinAudioPlayer.ClientStreamBuffer} buffer
                          */
                         buffer => {
-                            this._playerManager.moveToNextPlayer();
                             this._chunkOverlapTime = buffer.chunk.overlapTime;
                             return buffer;
                         }
                     );
+                this._playerManager.moveToNextPlayer();
             }
 
             /**
@@ -187,21 +219,25 @@
              * @returns {Promise<VaadinAudioPlayer.ClientStreamBuffer>}
              */
             _fetchChunksForNextPlayer(timestamp) {
+                const player = this._playerManager.nextPlayer;
+                player.buffer = null;
                 const request = this._stream.requestChunkByTimestamp(timestamp)
                     .then(
                         /**
                          * @param {VaadinAudioPlayer.ClientStreamBuffer} buffer
                          */
                         buffer => {
-                            const player = this._playerManager.nextPlayer;
-
                             buffer.ready.then(
                                 /**
                                  * @param {AudioBuffer} audio
                                  * @returns {AudioBuffer}
                                  */
                                 audio => {
+                                    const currentChunkTimestamp = Math.max(0, this._position - this._chunkOverlapTime);
                                     player.buffer = audio;
+                                    if (this._tryResume && timestamp === currentChunkTimestamp) {
+                                        this._tryResume();
+                                    }
                                     // console.warn(
                                     //     'decoded audio buffer for',
                                     //     'chunk', buffer.chunk.id,
@@ -214,7 +250,6 @@
                                 }
                             );
 
-                            this._setPersistingPlayerOptions(player);
                             return buffer;
                         }
                     );
@@ -267,7 +302,7 @@
                 let position = this._chunkPosition;
                 if (this._chunkStartTime !== undefined) {
                     position +=
-                        (this._context.currentTime * 1000 - this._chunkStartTime)
+                        (this._getScheduleTime() - this._chunkStartTime)
                         * this._playbackSpeed;
                 }
                 return position;
@@ -336,11 +371,19 @@
                 if (newPosition === this._position) {
                     if (isPlaying) {
                         this.play(offset, false);
+                    } else {
+                        this._chunkPosition = offset;
                     }
                 } else {
-                    this.pause();
+                    if (isPlaying) {
+                        this.pause();
+                    }
                     this._position = newPosition;
                     this._chunkPosition = offset;
+                    const shouldResume = isPlaying || this._tryResume !== undefined;
+                    if (shouldResume) {
+                        this._resumeWhenNextChunkReadyFrom(offset, true);
+                    }
                     this._fetchChunksForNextPlayer(this._position + this._chunkOverlapTime)
                         .then(
                             /**
@@ -352,14 +395,11 @@
                                      * @param {AudioBuffer} audio
                                      */
                                     audio => {
-                                        this._playerManager.moveToNextPlayer();
-                                        if (isPlaying) {
-                                            this.play(offset, false);
+                                        if (!shouldResume) {
+                                            this._playerManager.moveToNextPlayer();
                                         }
-                                        return audio;
                                     }
                                 );
-                                return buffer;
                             }
                         );
                 }
@@ -394,14 +434,15 @@
                 }
 
                 const isPlaying = this._chunkStartTime !== undefined;
-                const when = this._context.currentTime
-                    + VaadinAudioPlayer.Schedule.AUDIO_SCHEDULE_DELAY_MS / 1000;
+                const scheduleTime = this._getScheduleTime();
                 // calculate the position in the chunk based on elapsed time and current playback speed
                 if (isPlaying) {
-                    const elapsedTime = when * 1000 - this._chunkStartTime;
+                    const elapsedTime = scheduleTime - this._chunkStartTime;
                     this._chunkPosition += elapsedTime * this._playbackSpeed;
-                    this._chunkStartTime = when * 1000;
+                    this._chunkStartTime = scheduleTime;
                 }
+
+                const when = scheduleTime / 1000;
 
                 // Apply pitch correction
                 this._pitchShiftNode.setPitchFactor(1 / playbackSpeed, when);

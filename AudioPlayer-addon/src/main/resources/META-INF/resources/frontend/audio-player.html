@@ -65,6 +65,21 @@ not needed. Let us skip the template and leave the `dom-module` empty.
             ];
         }
 
+        connectedCallback() {
+            super.connectedCallback();
+            if (this._player) {
+                this._player.connect(this._context.destination);
+            }
+        }
+
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            if (this._player) {
+                this.stopPlayback();
+                this._player.disconnect();
+            }
+        }
+
         _updateStream(chunks, chunkTimeMillis) {
             if (chunks === undefined || chunkTimeMillis === undefined) {
                 return;
@@ -222,6 +237,7 @@ not needed. Let us skip the template and leave the `dom-module` empty.
         stopPlayback() {
             // console.warn('NAP element stopPlayback');
             this._player.stop();
+            this._cancelPositionReportSchedule();
         }
 
         _schedulePositionReport() {

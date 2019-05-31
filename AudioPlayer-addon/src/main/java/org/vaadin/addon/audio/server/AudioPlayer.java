@@ -175,6 +175,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
             chunkDescriptor.put("overlapTime", chunk.getOverlapTime());
             chunkDescriptor.put("startSampleOffset", chunk.getStartSampleOffset());
             chunkDescriptor.put("endSampleOffset", chunk.getEndSampleOffset());
+            chunkDescriptor.put("url", chunk.getUrl());
             chunksJson.set(i, chunkDescriptor);
         }
         getElement().setPropertyJson("chunks", chunksJson);

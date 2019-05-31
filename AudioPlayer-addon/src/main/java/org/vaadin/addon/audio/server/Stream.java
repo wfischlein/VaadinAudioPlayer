@@ -1,11 +1,15 @@
 package org.vaadin.addon.audio.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.StreamResourceRegistry;
+import com.vaadin.flow.server.StreamResourceWriter;
+import com.vaadin.flow.server.VaadinSession;
 import org.vaadin.addon.audio.server.state.StreamState;
 import org.vaadin.addon.audio.server.state.StreamStateCallback;
 import org.vaadin.addon.audio.shared.ChunkDescriptor;
@@ -129,6 +133,7 @@ public class Stream {
                 cd.setStartTimeOffset(time_start_offset);
                 cd.setEndTimeOffset(time_end_offset);
                 cd.setOverlapTime(chunkOverlapLength);
+                registerChunkResource(cd);
 
                 // Add descriptor to list
                 chunks.add(cd);
@@ -148,6 +153,7 @@ public class Stream {
             cd.setLeadOutDuration(chunkOverlapSampleSize);
             cd.setStartTimeOffset(0);
             cd.setEndTimeOffset(chunkLength);
+            registerChunkResource(cd);
         }
     }
 
@@ -157,6 +163,32 @@ public class Stream {
 
     public void removeStateChangeListener(StreamStateCallback cb) {
         stateCallbacks.remove(cb);
+    }
+
+    private void registerChunkResource(ChunkDescriptor chunk) {
+        StreamResource resource = new StreamResource("audio",
+                (OutputStream stream, VaadinSession session) -> {
+                    setStreamState(StreamState.READING);
+                    int startOffset = chunk.getStartSampleOffset();
+                    int endOffset = chunk.getEndSampleOffset();
+                    int length = endOffset - startOffset;
+
+                    setStreamState(StreamState.ENCODING);
+                    byte[] bytes = encoder.encode(startOffset, length);
+
+                    if (compression) {
+                        setStreamState(StreamState.COMPRESSING);
+                        bytes = StreamDataEncoder.compress(bytes);
+                    }
+
+                    setStreamState(StreamState.SERIALIZING);
+                    stream.write(bytes);
+                    stream.flush();
+                    stream.close();
+                });
+        // VaadinSession.getCurrent().getResourceRegistry();
+        StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
+        chunk.setUrl(registry.registerResource(resource).getResourceUri().toASCIIString());
     }
 
     private void setStreamState(StreamState s) {

@@ -19,6 +19,8 @@ public class ChunkDescriptor implements Serializable {
     private int startSampleOffset;
     private int endSampleOffset;
 
+    private String url;
+
     public void setId(int id) {
         this.id = id;
     }
@@ -55,6 +57,10 @@ public class ChunkDescriptor implements Serializable {
         this.endSampleOffset = endSampleOffset;
     }
 
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public int getId() {
         return id;
     }
@@ -81,6 +87,10 @@ public class ChunkDescriptor implements Serializable {
 
     public int getEndSampleOffset() {
         return endSampleOffset;
+    }
+
+    public String getUrl() {
+        return url;
     }
 
     @Override

@@ -21,6 +21,7 @@
              * @param {AudioPlayer} transport
              */
             constructor(context, transport) {
+                this._context = context;
                 this._transport = transport;
                 this._chunkRequests = new WeakMap();
                 this._resolutions = new WeakMap();
@@ -51,7 +52,7 @@
                 });
                 this._chunkRequests.set(chunk, request);
 
-                this._transport.$server.requestChunk(chunk.id);
+                this._loadChunkData(chunk);
 
                 return request;
             }
@@ -73,20 +74,29 @@
             }
 
             /**
-             * @param {number} chunkId
-             * @param {VaadinAudioPlayer.ClientStreamBuffer} buffer
+             * Makes a binary GET request on chunk.url to load chunk audio data.
+             * Uses `_onChunkDataLoaded` callback.
+             *
+             * @param {VaadinAudioPlayer.ChunkDescriptor} chunk
              */
-            notifyChunkLoaded(chunkId, buffer) {
-                const chunk = this._findChunkById(chunkId);
-                if (!chunk) {
-                    // The loaded chunk is not relevant anymore, reject
-                    const reject = this._rejections.get(chunk);
-                    if (reject) {
-                        reject(new Error('Loaded chunk ID does not exist in chunks array'));
-                    }
-                    return;
-                }
+            _loadChunkData(chunk) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', chunk.url, true);
+                xhr.responseType = 'arraybuffer';
+                xhr.onload = () => {
+                    this._onChunkDataLoaded(chunk, xhr.response);
+                };
+                xhr.send(null);
+            }
 
+            /**
+             * Chunk data request callback.
+             *
+             * @param {VaadinAudioPlayer.ChunkDescriptor} chunk
+             * @param {ArrayBuffer} data
+             */
+            _onChunkDataLoaded(chunk, data) {
+                const buffer = new VaadinAudioPlayer.ClientStreamBuffer(this._context, data);
                 buffer.chunk = chunk;
 
                 this._buffers.set(chunk, buffer);

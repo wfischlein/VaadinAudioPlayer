@@ -81,21 +81,6 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     @ClientCallable
-    public void requestChunk(final int chunkID) {
-        Log.message(AudioPlayer.this, "received request for chunk " + chunkID);
-
-        final UI ui = UI.getCurrent();
-        final AudioPlayer player = AudioPlayer.this;
-
-        Stream.Callback onComplete = encodedData -> ui.access(() -> {
-            getElement().callFunction("sendData", chunkID, stream.isCompressionEnabled(), encodedData);
-            Log.message(AudioPlayer.this, "sent chunk " + chunkID);
-        });
-
-        stream.getChunkData(stream.getChunkById(chunkID), onComplete);
-    }
-
-    @ClientCallable
     public void reportPlaybackPosition(int position_millis) {
         Log.message(AudioPlayer.this,"received position report: " + position_millis);
         if (position_millis != currentPosition) {

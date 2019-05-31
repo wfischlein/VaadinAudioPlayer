@@ -24,7 +24,7 @@ public class Stream {
     private static final int CHUNK_OVERLAP_MILLIS = 0;
 
     public static interface Callback {
-        public void onComplete(String encodedData);
+        public void onComplete(byte[] data);
     }
 
     private static class ChunkRequest {
@@ -133,7 +133,6 @@ public class Stream {
                 cd.setStartTimeOffset(time_start_offset);
                 cd.setEndTimeOffset(time_end_offset);
                 cd.setOverlapTime(chunkOverlapLength);
-                registerChunkResource(cd);
 
                 // Add descriptor to list
                 chunks.add(cd);
@@ -153,7 +152,6 @@ public class Stream {
             cd.setLeadOutDuration(chunkOverlapSampleSize);
             cd.setStartTimeOffset(0);
             cd.setEndTimeOffset(chunkLength);
-            registerChunkResource(cd);
         }
     }
 
@@ -163,32 +161,6 @@ public class Stream {
 
     public void removeStateChangeListener(StreamStateCallback cb) {
         stateCallbacks.remove(cb);
-    }
-
-    private void registerChunkResource(ChunkDescriptor chunk) {
-        StreamResource resource = new StreamResource("audio",
-                (OutputStream stream, VaadinSession session) -> {
-                    setStreamState(StreamState.READING);
-                    int startOffset = chunk.getStartSampleOffset();
-                    int endOffset = chunk.getEndSampleOffset();
-                    int length = endOffset - startOffset;
-
-                    setStreamState(StreamState.ENCODING);
-                    byte[] bytes = encoder.encode(startOffset, length);
-
-                    if (compression) {
-                        setStreamState(StreamState.COMPRESSING);
-                        bytes = StreamDataEncoder.compress(bytes);
-                    }
-
-                    setStreamState(StreamState.SERIALIZING);
-                    stream.write(bytes);
-                    stream.flush();
-                    stream.close();
-                });
-        // VaadinSession.getCurrent().getResourceRegistry();
-        StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
-        chunk.setUrl(registry.registerResource(resource).getResourceUri().toASCIIString());
     }
 
     private void setStreamState(StreamState s) {
@@ -278,14 +250,14 @@ public class Stream {
                 setStreamState(StreamState.ENCODING);
                 byte[] bytes = encoder.encode(startOffset, length);
 
-                if (compression) {
-                    setStreamState(StreamState.COMPRESSING);
-                    bytes = StreamDataEncoder.compress(bytes);
-                }
+                // if (compression) {
+                //     setStreamState(StreamState.COMPRESSING);
+                //     bytes = StreamDataEncoder.compress(bytes);
+                // }
 
-                setStreamState(StreamState.SERIALIZING);
-                String serialized = StreamDataEncoder.encode(bytes);
-                callback.onComplete(serialized);
+                // setStreamState(StreamState.SERIALIZING);
+                // String serialized = StreamDataEncoder.encode(bytes);
+                callback.onComplete(bytes);
 
                 // We're done, kill the worker
                 worker = null;

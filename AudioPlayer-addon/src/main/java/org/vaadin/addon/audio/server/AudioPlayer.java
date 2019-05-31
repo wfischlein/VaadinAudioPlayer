@@ -1,13 +1,21 @@
 package org.vaadin.addon.audio.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
+import com.vaadin.flow.server.StreamRegistration;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.StreamResourceRegistry;
+import com.vaadin.flow.server.VaadinSession;
 import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 import org.vaadin.addon.audio.server.state.PlaybackState;
 import org.vaadin.addon.audio.server.state.StateChangeCallback;
+import org.vaadin.addon.audio.server.state.StreamState;
 import org.vaadin.addon.audio.server.state.VolumeChangeCallback;
 import org.vaadin.addon.audio.server.util.StringFormatter;
 import org.vaadin.addon.audio.shared.ChunkDescriptor;
@@ -32,6 +40,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     private int currentPosition = 0;
     private double volume = 1;
     private double[] channelVolumes = new double[0];
+    //private HashMap<>
 
     // TODO: use a proper event system
     private List<StateChangeCallback> stateCallbacks = new ArrayList<>();
@@ -142,6 +151,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     public Stream setStream(Stream stream) {
+
         // if (this.stream != null) {
         //     chunks.clear();
         // }
@@ -151,6 +161,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         List<ChunkDescriptor> chunks = stream.getChunks();
         for (int i = 0; i < chunks.size(); i++) {
             ChunkDescriptor chunk = chunks.get(i);
+            registerChunkResource(chunk);
             JsonObject chunkDescriptor = Json.createObject();
             chunkDescriptor.put("id", chunk.getId());
             chunkDescriptor.put("startTimeOffset", chunk.getStartTimeOffset());
@@ -160,7 +171,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
             chunkDescriptor.put("overlapTime", chunk.getOverlapTime());
             chunkDescriptor.put("startSampleOffset", chunk.getStartSampleOffset());
             chunkDescriptor.put("endSampleOffset", chunk.getEndSampleOffset());
-            chunkDescriptor.put("url", chunk.getUrl());
+            chunkDescriptor.put("url", chunk.getUrl().toASCIIString());
             chunksJson.set(i, chunkDescriptor);
         }
         getElement().setPropertyJson("chunks", chunksJson);
@@ -169,6 +180,28 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         chunkTimeMillis = stream.getChunkLength();
         getElement().setProperty("chunkTimeMillis", chunkTimeMillis);
         return stream;
+    }
+
+    private void registerChunkResource(ChunkDescriptor chunk) {
+        StreamResource resource = new StreamResource("audio",
+                (OutputStream outputStream, VaadinSession session) -> {
+                    stream.getChunkData(chunk, bytes -> {
+                        try {
+                            outputStream.write(bytes);
+                            outputStream.flush();
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                });
+        StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
+        StreamRegistration registration = registry.registerResource(resource);
+        chunk.setUrl(registration.getResourceUri());
+    }
+
+    private void unregisterChunkResource(ChunkDescriptor chunk) {
+
     }
 
     /**

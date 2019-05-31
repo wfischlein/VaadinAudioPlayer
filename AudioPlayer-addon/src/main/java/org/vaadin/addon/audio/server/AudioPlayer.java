@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.server.StreamRegistration;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.StreamResourceRegistry;
@@ -40,7 +42,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     private int currentPosition = 0;
     private double volume = 1;
     private double[] channelVolumes = new double[0];
-    //private HashMap<>
+    private List<StreamRegistration> chunkRegistrations = new ArrayList<>();
 
     // TODO: use a proper event system
     private List<StateChangeCallback> stateCallbacks = new ArrayList<>();
@@ -151,17 +153,17 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     public Stream setStream(Stream stream) {
+        unregisterStreamChunks();
 
-        // if (this.stream != null) {
-        //     chunks.clear();
-        // }
         this.stream = stream;
+
+        registerStreamChunks();
+
         // TODO: prettify this verbose JSON serialization
         JsonArray chunksJson = Json.createArray();
         List<ChunkDescriptor> chunks = stream.getChunks();
         for (int i = 0; i < chunks.size(); i++) {
             ChunkDescriptor chunk = chunks.get(i);
-            registerChunkResource(chunk);
             JsonObject chunkDescriptor = Json.createObject();
             chunkDescriptor.put("id", chunk.getId());
             chunkDescriptor.put("startTimeOffset", chunk.getStartTimeOffset());
@@ -182,6 +184,38 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         return stream;
     }
 
+    private void registerStreamChunks() {
+        if (this.stream == null) {
+            return;
+        }
+
+        List<ChunkDescriptor> chunks = this.stream.getChunks();
+        for (int i = 0; i < chunks.size(); i++) {
+            registerChunkResource(chunks.get(i));
+        }
+    }
+
+    private void unregisterStreamChunks() {
+        for (int i = 0; i < chunkRegistrations.size(); i++) {
+            chunkRegistrations.get(i).unregister();
+        }
+
+        chunkRegistrations.clear();
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        if (this.stream != null && this.chunkRegistrations.isEmpty()) {
+            registerStreamChunks();
+        }
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        unregisterStreamChunks();
+    }
+
+
     private void registerChunkResource(ChunkDescriptor chunk) {
         StreamResource resource = new StreamResource("audio",
                 (OutputStream outputStream, VaadinSession session) -> {
@@ -197,11 +231,8 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
                 });
         StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
         StreamRegistration registration = registry.registerResource(resource);
+        chunkRegistrations.add(registration);
         chunk.setUrl(registration.getResourceUri());
-    }
-
-    private void unregisterChunkResource(ChunkDescriptor chunk) {
-
     }
 
     /**

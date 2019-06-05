@@ -136,6 +136,10 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         }
     }
 
+    public void destroy() {
+        // ui.removeExtension(this);
+    }
+
     /**
      * Gets Stream object that supplies audio data to this AudioPlayer.
      * 

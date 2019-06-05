@@ -48,9 +48,6 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     private List<StateChangeCallback> stateCallbacks = new ArrayList<>();
     private List<VolumeChangeCallback> volumeCallbacks = new ArrayList<>();
 
-    // AudioPlayerState:
-    // public final List<ChunkDescriptor> chunks = new ArrayList<ChunkDescriptor>();
-
     public int chunkTimeMillis;
 
     public int numChunksPreload;
@@ -93,7 +90,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackPosition(int position_millis) {
-        Log.message(AudioPlayer.this,"received position report: " + position_millis);
+        Log.message(this,"received position report: " + position_millis);
         if (position_millis != currentPosition) {
             currentPosition = position_millis;
             for (StateChangeCallback cb : stateCallbacks) {
@@ -104,7 +101,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackStarted() {
-        Log.message(AudioPlayer.this, "received playback state change to PLAYING");
+        Log.message(this, "received playback state change to PLAYING");
         playbackState = PlaybackState.PLAYING;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -113,7 +110,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackPaused() {
-        Log.message(AudioPlayer.this, "received playback state change to PAUSED");
+        Log.message(this, "received playback state change to PAUSED");
         playbackState = PlaybackState.PAUSED;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -122,7 +119,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackStopped() {
-        Log.message(AudioPlayer.this, "received playback state change to STOPPED");
+        Log.message(this, "received playback state change to STOPPED");
         playbackState = PlaybackState.STOPPED;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -131,16 +128,12 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportVolumeChange(double volume, double[] channelVolumes) {
-        Log.message(AudioPlayer.this, "volume change reported from client");
-        AudioPlayer.this.volume = volume;
-        AudioPlayer.this.channelVolumes = channelVolumes;
+        Log.message(this, "volume change reported from client");
+        this.volume = volume;
+        this.channelVolumes = channelVolumes;
         for (VolumeChangeCallback cb : volumeCallbacks) {
             cb.onVolumeChange(volume, channelVolumes);
         }
-    }
-
-    public void destroy() {
-        // ui.removeExtension(this);
     }
 
     /**
@@ -184,6 +177,14 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         return stream;
     }
 
+    private void unregisterStreamChunks() {
+        for (int i = 0; i < chunkRegistrations.size(); i++) {
+            chunkRegistrations.get(i).unregister();
+        }
+
+        chunkRegistrations.clear();
+    }
+
     private void registerStreamChunks() {
         if (this.stream == null) {
             return;
@@ -193,14 +194,6 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         for (int i = 0; i < chunks.size(); i++) {
             registerChunkResource(chunks.get(i));
         }
-    }
-
-    private void unregisterStreamChunks() {
-        for (int i = 0; i < chunkRegistrations.size(); i++) {
-            chunkRegistrations.get(i).unregister();
-        }
-
-        chunkRegistrations.clear();
     }
 
     @Override
@@ -215,20 +208,17 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         unregisterStreamChunks();
     }
 
-
     private void registerChunkResource(ChunkDescriptor chunk) {
         StreamResource resource = new StreamResource("audio",
-                (OutputStream outputStream, VaadinSession session) -> {
-                    stream.getChunkData(chunk, bytes -> {
-                        try {
-                            outputStream.write(bytes);
-                            outputStream.flush();
-                            outputStream.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                });
+                (OutputStream outputStream, VaadinSession session) -> stream.getChunkData(chunk, bytes -> {
+                    try {
+                        outputStream.write(bytes);
+                        outputStream.flush();
+                        outputStream.close();
+                    } catch (IOException e) {
+                        Log.message(this, "could not register audio chunk with id: " + chunk.getId());
+                    }
+                }));
         StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
         StreamRegistration registration = registry.registerResource(resource);
         chunkRegistrations.add(registration);

@@ -250,13 +250,6 @@ public class Stream {
                 setStreamState(StreamState.ENCODING);
                 byte[] bytes = encoder.encode(startOffset, length);
 
-                // if (compression) {
-                //     setStreamState(StreamState.COMPRESSING);
-                //     bytes = StreamDataEncoder.compress(bytes);
-                // }
-
-                // setStreamState(StreamState.SERIALIZING);
-                // String serialized = StreamDataEncoder.encode(bytes);
                 callback.onComplete(bytes);
 
                 // We're done, kill the worker

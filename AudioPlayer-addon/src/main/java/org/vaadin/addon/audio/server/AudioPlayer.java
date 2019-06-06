@@ -1,13 +1,23 @@
 package org.vaadin.addon.audio.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.server.StreamRegistration;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.StreamResourceRegistry;
+import com.vaadin.flow.server.VaadinSession;
 import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 import org.vaadin.addon.audio.server.state.PlaybackState;
 import org.vaadin.addon.audio.server.state.StateChangeCallback;
+import org.vaadin.addon.audio.server.state.StreamState;
 import org.vaadin.addon.audio.server.state.VolumeChangeCallback;
 import org.vaadin.addon.audio.server.util.StringFormatter;
 import org.vaadin.addon.audio.shared.ChunkDescriptor;
@@ -32,13 +42,11 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     private int currentPosition = 0;
     private double volume = 1;
     private double[] channelVolumes = new double[0];
+    private List<StreamRegistration> chunkRegistrations = new ArrayList<>();
 
     // TODO: use a proper event system
     private List<StateChangeCallback> stateCallbacks = new ArrayList<>();
     private List<VolumeChangeCallback> volumeCallbacks = new ArrayList<>();
-
-    // AudioPlayerState:
-    // public final List<ChunkDescriptor> chunks = new ArrayList<ChunkDescriptor>();
 
     public int chunkTimeMillis;
 
@@ -81,23 +89,8 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     @ClientCallable
-    public void requestChunk(final int chunkID) {
-        Log.message(AudioPlayer.this, "received request for chunk " + chunkID);
-
-        final UI ui = UI.getCurrent();
-        final AudioPlayer player = AudioPlayer.this;
-
-        Stream.Callback onComplete = encodedData -> ui.access(() -> {
-            getElement().callFunction("sendData", chunkID, stream.isCompressionEnabled(), encodedData);
-            Log.message(AudioPlayer.this, "sent chunk " + chunkID);
-        });
-
-        stream.getChunkData(stream.getChunkById(chunkID), onComplete);
-    }
-
-    @ClientCallable
     public void reportPlaybackPosition(int position_millis) {
-        Log.message(AudioPlayer.this,"received position report: " + position_millis);
+        Log.message(this,"received position report: " + position_millis);
         if (position_millis != currentPosition) {
             currentPosition = position_millis;
             for (StateChangeCallback cb : stateCallbacks) {
@@ -108,7 +101,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackStarted() {
-        Log.message(AudioPlayer.this, "received playback state change to PLAYING");
+        Log.message(this, "received playback state change to PLAYING");
         playbackState = PlaybackState.PLAYING;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -117,7 +110,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackPaused() {
-        Log.message(AudioPlayer.this, "received playback state change to PAUSED");
+        Log.message(this, "received playback state change to PAUSED");
         playbackState = PlaybackState.PAUSED;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -126,7 +119,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportPlaybackStopped() {
-        Log.message(AudioPlayer.this, "received playback state change to STOPPED");
+        Log.message(this, "received playback state change to STOPPED");
         playbackState = PlaybackState.STOPPED;
         for (StateChangeCallback cb : stateCallbacks) {
             cb.playbackStateChanged(playbackState);
@@ -135,9 +128,9 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
 
     @ClientCallable
     public void reportVolumeChange(double volume, double[] channelVolumes) {
-        Log.message(AudioPlayer.this, "volume change reported from client");
-        AudioPlayer.this.volume = volume;
-        AudioPlayer.this.channelVolumes = channelVolumes;
+        Log.message(this, "volume change reported from client");
+        this.volume = volume;
+        this.channelVolumes = channelVolumes;
         for (VolumeChangeCallback cb : volumeCallbacks) {
             cb.onVolumeChange(volume, channelVolumes);
         }
@@ -157,10 +150,12 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
     }
 
     public Stream setStream(Stream stream) {
-        // if (this.stream != null) {
-        //     chunks.clear();
-        // }
+        unregisterStreamChunks();
+
         this.stream = stream;
+
+        registerStreamChunks();
+
         // TODO: prettify this verbose JSON serialization
         JsonArray chunksJson = Json.createArray();
         List<ChunkDescriptor> chunks = stream.getChunks();
@@ -175,6 +170,7 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
             chunkDescriptor.put("overlapTime", chunk.getOverlapTime());
             chunkDescriptor.put("startSampleOffset", chunk.getStartSampleOffset());
             chunkDescriptor.put("endSampleOffset", chunk.getEndSampleOffset());
+            chunkDescriptor.put("url", chunk.getUrl().toASCIIString());
             chunksJson.set(i, chunkDescriptor);
         }
         getElement().setPropertyJson("chunks", chunksJson);
@@ -183,6 +179,54 @@ public class AudioPlayer extends PolymerTemplate<TemplateModel> {
         chunkTimeMillis = stream.getChunkLength();
         getElement().setProperty("chunkTimeMillis", chunkTimeMillis);
         return stream;
+    }
+
+    private void unregisterStreamChunks() {
+        for (int i = 0; i < chunkRegistrations.size(); i++) {
+            chunkRegistrations.get(i).unregister();
+        }
+
+        chunkRegistrations.clear();
+    }
+
+    private void registerStreamChunks() {
+        if (this.stream == null) {
+            return;
+        }
+
+        List<ChunkDescriptor> chunks = this.stream.getChunks();
+        for (int i = 0; i < chunks.size(); i++) {
+            registerChunkResource(chunks.get(i));
+        }
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        if (this.stream != null && this.chunkRegistrations.isEmpty()) {
+            registerStreamChunks();
+        }
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        unregisterStreamChunks();
+    }
+
+    private void registerChunkResource(ChunkDescriptor chunk) {
+        StreamResource resource = new StreamResource("audio",
+                (OutputStream outputStream, VaadinSession session) -> stream.getChunkData(chunk, bytes -> {
+                    try {
+                        outputStream.write(bytes);
+                        outputStream.flush();
+                        outputStream.close();
+                    } catch (IOException e) {
+                        Log.message(this, "could not register audio chunk with id: " + chunk.getId());
+                    }
+                }));
+        StreamResourceRegistry registry = UI.getCurrent().getSession().getResourceRegistry();
+        StreamRegistration registration = registry.registerResource(resource);
+        chunkRegistrations.add(registration);
+        chunk.setUrl(registration.getResourceUri());
     }
 
     /**

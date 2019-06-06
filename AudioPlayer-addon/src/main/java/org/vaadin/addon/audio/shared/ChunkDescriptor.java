@@ -1,6 +1,8 @@
 package org.vaadin.addon.audio.shared;
 
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URL;
 
 @SuppressWarnings("serial")
 public class ChunkDescriptor implements Serializable {
@@ -18,6 +20,8 @@ public class ChunkDescriptor implements Serializable {
     // PCM source stream data offsets
     private int startSampleOffset;
     private int endSampleOffset;
+
+    private URI url;
 
     public void setId(int id) {
         this.id = id;
@@ -55,6 +59,10 @@ public class ChunkDescriptor implements Serializable {
         this.endSampleOffset = endSampleOffset;
     }
 
+    public void setUrl(URI url) {
+        this.url = url;
+    }
+
     public int getId() {
         return id;
     }
@@ -81,6 +89,10 @@ public class ChunkDescriptor implements Serializable {
 
     public int getEndSampleOffset() {
         return endSampleOffset;
+    }
+
+    public URI getUrl() {
+        return url;
     }
 
     @Override

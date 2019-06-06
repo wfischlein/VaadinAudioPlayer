@@ -1,11 +1,15 @@
 package org.vaadin.addon.audio.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.StreamResourceRegistry;
+import com.vaadin.flow.server.StreamResourceWriter;
+import com.vaadin.flow.server.VaadinSession;
 import org.vaadin.addon.audio.server.state.StreamState;
 import org.vaadin.addon.audio.server.state.StreamStateCallback;
 import org.vaadin.addon.audio.shared.ChunkDescriptor;
@@ -20,7 +24,7 @@ public class Stream {
     private static final int CHUNK_OVERLAP_MILLIS = 0;
 
     public static interface Callback {
-        public void onComplete(String encodedData);
+        public void onComplete(byte[] data);
     }
 
     private static class ChunkRequest {
@@ -246,14 +250,7 @@ public class Stream {
                 setStreamState(StreamState.ENCODING);
                 byte[] bytes = encoder.encode(startOffset, length);
 
-                if (compression) {
-                    setStreamState(StreamState.COMPRESSING);
-                    bytes = StreamDataEncoder.compress(bytes);
-                }
-
-                setStreamState(StreamState.SERIALIZING);
-                String serialized = StreamDataEncoder.encode(bytes);
-                callback.onComplete(serialized);
+                callback.onComplete(bytes);
 
                 // We're done, kill the worker
                 worker = null;

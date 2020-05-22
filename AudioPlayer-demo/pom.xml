@@ -108,7 +108,7 @@
 				<configuration>
 					<scanIntervalSeconds>0</scanIntervalSeconds>
 					<httpConnector>
-						<port>9999</port>
+						<port>8080</port>
 					</httpConnector>
 				</configuration>
 			</plugin>
